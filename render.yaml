@@ -1,0 +1,70 @@
+# render.yaml — Render Blueprint: Bean Garden in accounts mode on Render's FREE plan, with the durable state (the
+# accounts database + the engine state) kept in a PRIVATE Supabase Storage bucket (server/cloudsync.js).
+# Step-by-step guide (Thai): deploy/render/README.md
+#
+#   * ONE web service, ONE instance (free plan: no scaling). Never run two: the engine, SQLite and the cloud lease
+#     assume a single process.
+#   * Render's filesystem is EPHEMERAL (lost on every restart / deploy): the server restores from the bucket at boot,
+#     syncs the database every CLOUD_SYNC_SECONDS (60), the engine state every 2 hours, and once more on SIGTERM.
+#   * Render Hobby includes 5 GB of OUTBOUND traffic a month (uploads to Supabase count, so do the players' pages and
+#     streams); the sync keeps itself within CLOUD_EGRESS_BUDGET_MB (3072) by spacing uploads out.
+#   * Free instances sleep after 15 min without inbound traffic: a Supabase pg_cron job pings /healthz every 10 min
+#     (see the guide). /healthz answers any Host, so Render's own health check passes.
+#   * Secrets (sync: false) are typed into the Render dashboard when the Blueprint is created — never committed here.
+#   * Settings defined here win over the dashboard at the next Blueprint sync: change them HERE (GitHub's web editor is
+#     enough), not only under Environment.
+services:
+  - type: web
+    name: bean-garden
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    # Deploy on every commit that changes what the image contains (server/, web/, the package files, the Dockerfile)
+    # or this file — not on README / guide / test edits: every deploy restarts the game and loses the last minute of
+    # writes on the old instance.
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - server/**
+        - web/**
+        - package.json
+        - package-lock.json
+        - Dockerfile
+        - render.yaml
+    envVars:
+      # The public URL. If Render assigns another name (bean-garden-xxxx.onrender.com), put THAT here (no trailing /);
+      # the log shows "[config] ALERT PUBLIC_ORIGIN … differs from this Render service URL …" until it matches.
+      - key: PUBLIC_ORIGIN
+        value: https://bean-garden.onrender.com
+      # Render routes to $PORT (its default is 10000); set explicitly so it always wins over the image's PORT=8420.
+      - key: PORT
+        value: "10000"
+      - key: BEAN_FEED
+        value: hyperliquid
+      - key: NODE_ENV
+        value: production
+      # Open sign-ups for friends: change it HERE to open (a dashboard-only change is undone by the next Blueprint sync).
+      - key: SIGNUP_MODE
+        value: closed
+      - key: TESTNET_ENABLED
+        value: "0"
+      # Expected: Render's proxy connects from a private address (inside the default TRUSTED_PROXY_CIDRS) and appends
+      # the client to X-Forwarded-For. VERIFY with the "[clientip] …" log lines after the first visit (guide section 4).
+      - key: TRUST_PROXY
+        value: "1"
+      # Local backups live on the ephemeral disk (lost on restart); the bucket's history/ is the real backup.
+      - key: BACKUP_KEEP
+        value: "4"
+      # Durable state: the PRIVATE Supabase Storage bucket (created private on first boot if missing).
+      - key: SUPABASE_URL
+        value: https://fshntnizfqnwsrllxmtz.supabase.co
+      - key: CLOUD_STORE_BUCKET
+        value: bean-garden
+      # ---- secrets: entered in the Render dashboard (Blueprint creation asks for them); never in git
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ADMIN_BOOTSTRAP_CODE
+        sync: false

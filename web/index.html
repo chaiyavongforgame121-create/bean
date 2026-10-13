@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en" data-palette="std" data-motion="full" data-labels="always" data-feed="loading" data-net="ok">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#9ED3EE">
+  <meta name="description" content="Bean Garden 3D: a cozy floating-island farm where every crop is a paper trade priced by the real Hyperliquid market. Real prices, paper trades, no real money.">
+  <!-- Point the page at another backend with <meta name="brood-api" content="http://host:port"> (or ?api=…). -->
+  <title>Bean Garden</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%B1%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/css/game.css">
+  <link rel="modulepreload" href="/vendor/three/build/three.module.min.js">
+  <script type="module" src="/js/game/boot.js"></script>
+</head>
+<body>
+  <!--
+    Bean Garden 3D shell (GAME-DESIGN §6). Owned by WP5. No inline script, style or handlers
+    (CSP: script-src 'self'; style-src 'self'). All text is DOM (never drawn into WebGL).
+
+    Containers other packages depend on:
+      #stage > canvas#world (aria-hidden), #chips (projected plot chips, aria-hidden), #fx (floaters, tooltips)
+      #hud (top) · #dock (plot dock <ol>) · #panels (side panels / bottom sheets) · #dialogs (modals, tour, radial)
+      #announce (aria-live polite) · #alert (aria-live assertive: feed down / API down only)
+      #boot (non-blocking loading card; WP2 boot.js writes #bootMsg and shows #bootActions on a fatal error)
+    The UI is mounted by js/game/ui/index.js → mountUi({store, bus, data, settings, sfx}).
+    Accounts mode (PLATFORM §9): #btnSignIn (spectators) and #btnAccount (players, desktop) in the top bar; the farm
+    gate, account and testnet panels live in #panels; their dialogs (#acctDlg, #tnDlg) are created in #dialogs.
+  -->
+  <a class="skip" href="#dock" data-i18n="g.a11y.skip">Skip to the plots</a>
+  <button type="button" class="skip" id="skipList" data-i18n="g.a11y.list">Open the list view</button>
+
+  <div id="stage" tabindex="0" role="region" aria-label="3D island view — arrow keys move the camera; the plot list has every action" aria-describedby="sceneSummary" data-i18n-attr="aria-label:g.a11y.stage">
+    <canvas id="world" aria-hidden="true"></canvas>
+    <div id="chips" aria-hidden="true"></div>
+    <div id="fx" aria-hidden="true"></div>
+    <div class="stage-fog" aria-hidden="true"></div>
+  </div>
+  <p id="sceneSummary" class="sr-only" data-i18n="g.a11y.sceneEmpty">Island with no plants yet</p>
+
+  <div id="boot" class="boot" role="status">
+    <div class="boot-card">
+      <div class="boot-sprout" aria-hidden="true"><svg class="ico" focusable="false"><use href="/img/icons.svg#i-seed"></use></svg></div>
+      <p id="bootMsg" class="boot-msg" data-i18n="g.boot.loading">Growing the island…</p>
+      <p id="bootActions" class="boot-actions" hidden>
+        <a class="btn btn--paper" href="/classic.html" data-i18n="g.boot.openClassic">Open the classic garden</a>
+        <button type="button" class="btn btn--wood" id="bootRetry" data-i18n="g.boot.retry">Try again</button>
+      </p>
+    </div>
+  </div>
+
+  <header id="hud" class="hud">
+    <div class="hud-bar">
+      <button type="button" id="badge" class="badge" data-tone="loading" aria-haspopup="dialog" aria-expanded="false" title="Price source and trading mode — details" data-i18n-attr="title:g.badge.label">
+        <span class="badge-mark" id="badgeMark" aria-hidden="true">○</span>
+        <span class="badge-long" id="badgeText" data-i18n="g.badge.loading">PAPER TRADES · connecting…</span>
+        <span class="badge-short" id="badgeShort" aria-hidden="true" data-i18n="g.badge.short.loading">PAPER</span>
+        <svg class="ico badge-info" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-help"></use></svg>
+      </button>
+
+      <h1 class="brand"><svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-seed"></use></svg><span data-i18n="app.title">Bean Garden</span></h1>
+
+      <button type="button" id="barnMini" class="barn-mini phone-only" aria-haspopup="dialog" aria-expanded="false">
+        <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-barn"></use></svg>
+        <span class="sr-only" data-i18n="g.hud.barn">Barn (account value)</span>
+        <b class="v num" id="barnMiniV">—</b>
+      </button>
+
+      <div class="hud-status" id="hudStatus">
+        <span id="weather" class="stat stat--weather" title="market weather, not your P&amp;L" data-i18n-attr="title:g.weather.note">…</span>
+        <span id="clock" class="stat stat--clock" title="Windmill: one turn per 1-minute bar" data-i18n-attr="title:g.clock.label"><span aria-hidden="true">◷</span> <span id="clockText" class="num">…</span></span>
+        <span id="live" class="stat stat--live" data-state="off" title="live updates from the server (falls back to polling every 20 s)" data-i18n-attr="title:live.title"><span class="live-dot" aria-hidden="true"></span><span id="liveText">…</span></span>
+      </div>
+
+      <div class="hud-tools">
+        <!-- accounts mode (PLATFORM §9.1/§9.2): the Sign in chip for spectators, the account menu for players (desktop; phones use ⋯ More) -->
+        <button type="button" id="btnSignIn" class="btn btn--wood signin-chip" aria-haspopup="dialog" aria-expanded="false" aria-controls="panel-gate" hidden><span class="signin-text" data-i18n="g.gate.signin">Sign in</span></button>
+        <button type="button" id="btnAccount" class="icon-btn acct-btn desk-only" aria-haspopup="dialog" aria-expanded="false" aria-controls="panel-account" hidden><span class="acct-name"></span></button>
+        <button type="button" id="btnMute" class="icon-btn" aria-pressed="false" aria-label="Unmute" title="Unmute">
+          <svg class="ico ico-off" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-sound-off"></use></svg>
+          <svg class="ico ico-on" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-sound-on"></use></svg>
+        </button>
+        <button type="button" id="btnSettings" class="icon-btn" data-panel="settings" aria-haspopup="dialog" aria-expanded="false" aria-label="Settings" title="Settings" data-i18n-attr="aria-label:g.btn.settings;title:g.btn.settings">
+          <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-gear"></use></svg>
+        </button>
+        <button type="button" id="btnHelp" class="icon-btn desk-only" data-panel="help" aria-haspopup="dialog" aria-expanded="false" aria-label="Help" title="Help" data-i18n-attr="aria-label:g.btn.help;title:g.btn.help">
+          <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-help"></use></svg>
+        </button>
+      </div>
+    </div>
+
+    <ul class="money" id="money" aria-label="Paper account" data-i18n-attr="aria-label:g.hud.money">
+      <li class="mchip mchip--barn desk-only" id="mBarnLi"><button type="button" class="mchip-btn" id="mBarn" aria-haspopup="dialog" aria-expanded="false" title="Barn (account value)" data-i18n-attr="title:g.hud.barn">
+        <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-barn"></use></svg>
+        <span class="k" data-i18n="sign.barn">barn</span> <b class="v num" id="vBarn">—</b> <span class="sub num" id="vVsStart"></span>
+      </button></li>
+      <li class="mchip mchip--pond" id="mPond" title="Pond (free cash)" data-i18n-attr="title:g.hud.pond">
+        <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-pond"></use></svg>
+        <span class="k" data-i18n="g.hud.pondShort">pond</span> <b class="v num" id="vPond">—</b> <span class="sub" data-i18n="g.hud.free">free</span>
+      </li>
+      <li class="mchip mchip--tower" id="mTower" title="Water out (deployed)" data-i18n-attr="title:g.hud.tower">
+        <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-tower"></use></svg>
+        <span class="k" data-i18n="sign.waterOut">water out</span> <b class="v num" id="vTower">—</b>
+      </li>
+      <li class="mchip mchip--growing" id="mGrowing" title="Growing (unrealized)" data-i18n-attr="title:g.hud.growing">
+        <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-seed"></use></svg>
+        <span class="k" data-i18n="sign.growing">growing</span> <b class="v num money" id="vGrowing">—</b>
+      </li>
+      <li class="mchip mchip--harvested" id="mHarvested" title="Harvested (realized)" data-i18n-attr="title:g.hud.harvested">
+        <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-basket"></use></svg>
+        <span class="k" data-i18n="sign.harvested">harvested</span> <b class="v num money" id="vHarvested">—</b>
+      </li>
+      <li class="mchip mchip--plants" id="mPlants">
+        <span class="k" data-i18n="sign.plants">plants</span> <b class="v num" id="vPlants">—</b>
+      </li>
+      <li class="mchip mchip--age age" id="moneyAge" hidden></li>
+    </ul>
+  </header>
+
+  <div id="banners" class="banners"></div>
+  <div id="toasts" class="toasts" aria-hidden="true"></div>
+
+  <div id="panels" class="panels"></div>
+
+  <div id="bottom" class="bottom">
+    <nav id="toolbar" class="toolbar" aria-label="Garden tools" data-i18n-attr="aria-label:g.btn.toolbar">
+      <div class="tb-group">
+        <button type="button" class="btn btn--wood tb-btn" id="btnSeeds" data-panel="shelf" aria-expanded="false">
+          <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-seed"></use></svg><span data-i18n="g.btn.seeds" data-i18n-bare="">Seeds</span>
+        </button>
+        <button type="button" class="btn btn--wood tb-btn desk-only" id="btnList" data-panel="list" aria-expanded="false">
+          <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-list"></use></svg><span data-i18n="g.btn.list" data-i18n-bare="">List</span>
+        </button>
+        <button type="button" class="btn btn--wood tb-btn phone-only" id="btnPlots" data-panel="list" aria-expanded="false">
+          <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-list"></use></svg><span data-i18n="g.btn.plots" data-i18n-bare="">Plots</span>
+        </button>
+        <button type="button" class="btn btn--wood tb-btn" id="btnDiary" data-panel="diary" aria-expanded="false">
+          <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-diary"></use></svg><span data-i18n="g.btn.diary" data-i18n-bare="">Diary</span>
+          <span class="unread" id="diaryUnread" hidden></span>
+        </button>
+        <button type="button" class="btn btn--wood tb-btn desk-only" id="btnPrices" data-panel="board" aria-expanded="false">
+          <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-prices"></use></svg><span data-i18n="g.btn.prices" data-i18n-bare="">Prices</span>
+        </button>
+        <button type="button" class="btn btn--wood tb-btn phone-only" id="btnMore" data-panel="more" aria-expanded="false">
+          <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-more"></use></svg><span data-i18n="g.btn.more" data-i18n-bare="">More</span>
+        </button>
+      </div>
+      <div class="tb-group tb-group--end desk-only">
+        <button type="button" class="btn btn--paper tb-btn" id="btnTimelapse" hidden title="Time-lapse: run 60 simulated minutes now" data-i18n-attr="title:field.timelapseLabel">
+          <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-sun"></use></svg><span data-i18n="g.btn.timelapse" data-i18n-bare="">+1h · SIM only</span>
+        </button>
+        <button type="button" class="btn btn--danger tb-btn" id="btnBurn" title="bots_halt: close every bot and refuse new ones" data-i18n-attr="title:field.burnTitle">
+          <svg class="ico" aria-hidden="true" focusable="false"><use href="/img/icons.svg#i-fire"></use></svg><span data-i18n="g.btn.burn" data-i18n-bare="">Burn</span>
+        </button>
+      </div>
+    </nav>
+
+    <section id="dockWrap" class="dock-wrap" aria-labelledby="dockTitle">
+      <h2 id="dockTitle" class="sr-only" data-i18n="g.dock.title">Plots</h2>
+      <ol id="dock" class="dock"></ol>
+      <p id="dockNote" class="dock-note" hidden></p>
+    </section>
+
+    <section id="ticker" class="ticker" aria-labelledby="tickerTitle">
+      <h2 id="tickerTitle" class="ticker-label" data-i18n="g.ticker.labelUnknown">Prices</h2>
+      <ul id="tickerList" class="ticker-list" tabindex="0" aria-labelledby="tickerTitle"></ul>
+      <button type="button" id="tickerAll" class="ticker-all" aria-haspopup="dialog"><span data-i18n="g.ticker.all">All prices</span> <span aria-hidden="true">▸</span></button>
+    </section>
+  </div>
+
+  <div id="dialogs" class="dialogs">
+    <dialog id="plantDlg" class="dlg dlg--plant" aria-labelledby="plantTitle"></dialog>
+    <dialog id="askDlg" class="dlg dlg--ask" aria-labelledby="askTitle" aria-describedby="askBody"></dialog>
+  </div>
+
+  <div id="announce" class="sr-only" aria-live="polite"></div>
+  <div id="alert" class="sr-only" aria-live="assertive"></div>
+
+  <noscript><p class="noscript">The 3D garden needs JavaScript. <a href="/classic.html">Open the classic garden</a>.</p></noscript>
+</body>
+</html>

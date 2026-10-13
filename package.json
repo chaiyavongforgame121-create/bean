@@ -1,0 +1,29 @@
+{
+  "name": "bean-garden",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Bean Garden: a cozy 3D farm where every crop is a trading bot. Real prices (read-only Hyperliquid market data) and paper trades; in accounts mode a player may also connect a Hyperliquid TESTNET API wallet (test funds). Mainnet orders are impossible by construction.",
+  "type": "module",
+  "main": "server/main.js",
+  "engines": {
+    "node": ">=22.16"
+  },
+  "scripts": {
+    "start": "node server/main.js",
+    "sim": "node server/main.js --feed sim",
+    "dev": "node server/main.js --feed sim --tick-ms 2000",
+    "fresh": "node server/main.js --fresh",
+    "accounts": "node server/main.js --auth accounts --public-origin http://localhost:8420",
+    "accounts:sim": "node server/main.js --auth accounts --public-origin http://localhost:8420 --feed sim",
+    "accounts:double": "node server/main.js --auth accounts --public-origin http://localhost:8420 --testnet-double",
+    "keygen": "node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"",
+    "admin": "node server/admin-cli.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "2.8.0",
+    "@noble/curves": "1.6.0",
+    "@noble/hashes": "1.5.0",
+    "three": "0.169.0"
+  }
+}

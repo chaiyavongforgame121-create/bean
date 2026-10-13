@@ -1,0 +1,43 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bean-garden",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "server/main.js",
+        "--port",
+        "8420",
+        "--feed",
+        "sim",
+        "--tick-ms",
+        "3000"
+      ],
+      "port": 8420
+    },
+    {
+      "name": "bean-garden-accounts",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "server/main.js",
+        "--auth",
+        "accounts",
+        "--public-origin",
+        "http://localhost:8420",
+        "--port",
+        "8420"
+      ],
+      "port": 8420
+    },
+    {
+      "name": "bean-garden-real",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "server/main.js",
+        "--port",
+        "8421"
+      ],
+      "port": 8421
+    }
+  ]
+}

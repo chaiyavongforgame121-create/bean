@@ -1,0 +1,53 @@
+# Bean Garden on one VM: the app container plus Caddy for TLS (PLATFORM.md §10.1, §10.2).
+#
+#   1. cp .env.example .env            # non-secret settings: DOMAIN, PUBLIC_ORIGIN, TRUST_PROXY=1, …
+#   2. mkdir -p secrets && chmod 700 secrets
+#      node -e "console.log(require('crypto').randomBytes(32).toString('base64'))" > secrets/bean_master_key
+#      node -e "console.log(require('crypto').randomBytes(33).toString('base64url'))" > secrets/admin_token
+#      chmod 600 secrets/*             # never committed (.gitignore); back the master key up SEPARATELY from data
+#      sudo chown 1000:1000 secrets/*  # compose (non-swarm) bind-mounts secret files with their HOST owner and mode;
+#                                      # the app runs as `node` (uid 1000), which must be able to read them
+#   3. docker compose up -d --build
+#   4. docker compose exec bean cat /data/admin-bootstrap.txt   → sign up with it to become the first admin
+#   5. docker compose exec bean node server/admin-cli.js status
+#
+# Secrets reach the container as FILES under /run/secrets/ (not in `docker inspect`, not in the initial environment);
+# the server deletes every secret env var it reads (§5.1).
+services:
+  bean:
+    build: .
+    image: bean-garden:${BEAN_VERSION:-0.3.0}
+    restart: unless-stopped
+    env_file: .env                     # NON-secret settings only (PUBLIC_ORIGIN, TRUST_PROXY, TESTNET_ENABLED, …)
+    environment:
+      BEAN_MASTER_KEY_FILE: /run/secrets/bean_master_key
+      ADMIN_TOKEN_FILE: /run/secrets/admin_token
+    secrets: [ bean_master_key, admin_token ]
+    volumes: [ "bean-data:/data" ]
+    expose: [ "8420" ]                 # never `ports:` — Docker publishing bypasses host firewalls (§4.5)
+    stop_grace_period: 30s             # the server's own shutdown deadline is 25 s (§10.4)
+    read_only: true
+    tmpfs: [ "/tmp" ]
+    security_opt: [ "no-new-privileges:true" ]
+    cap_drop: [ "ALL" ]
+    ulimits: { core: 0 }               # a crash never writes a core dump that could hold a decrypted key
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  caddy:
+    image: caddy:2.8.4
+    restart: unless-stopped
+    ports: [ "80:80", "443:443", "443:443/udp" ]
+    environment: [ "DOMAIN=${DOMAIN}" ]
+    volumes: [ "./deploy/Caddyfile:/etc/caddy/Caddyfile:ro", "caddy-data:/data", "caddy-config:/config" ]
+    depends_on: [ bean ]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+secrets:
+  bean_master_key: { file: ./secrets/bean_master_key }   # chmod 600; never committed (.gitignore)
+  admin_token:     { file: ./secrets/admin_token }
+
+volumes: { bean-data: {}, caddy-data: {}, caddy-config: {} }

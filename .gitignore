@@ -1,0 +1,27 @@
+node_modules/
+*.log
+
+# Data never enters git: data/, data-prod/ (deploy/windows) and any other data*/ directory …
+data*/
+# … nor a data file written anywhere else (e.g. `--data .`): databases, WALs, engine state, journals, the generated
+# admin code, local backups.
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+state*.json
+journal*.jsonl
+admin-bootstrap.txt
+backups/
+
+# Secrets never enter git (PLATFORM.md §10.2, §10.7 #2): settings files and the compose secret files.
+.env*
+!.env.example
+secrets/
+
+# Third-party study material (the original game) stays local: the GitHub repository is PUBLIC.
+reference/
+BROOD-STUDY.md
+
+# Per-machine Claude Code settings.
+.claude/settings.local.json

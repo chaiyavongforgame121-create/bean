@@ -1,0 +1,94 @@
+{
+  "kind": "mids",
+  "t": 1791650477332,
+  "source": "hyperliquid",
+  "prices": "real",
+  "px": {
+    "BTC": 83022.5,
+    "ETH": 2506.25,
+    "SOL": 110.205,
+    "HYPE": 85.3505,
+    "XRP": 1.40595,
+    "DOGE": 0.08623,
+    "AVAX": 10.5205,
+    "LINK": 13.0965,
+    "SUI": 1.12255,
+    "NEAR": 5.3815,
+    "ARB": 0.18589,
+    "TIA": 0.50965,
+    "ZEC": 1231.45,
+    "WIF": 0.2177,
+    "PUMP": 0.005622,
+    "VVV": 22.4395
+  },
+  "px_ms": {
+    "BTC": 1791650477332,
+    "ETH": 1791650477332,
+    "SOL": 1791650477332,
+    "HYPE": 1791650477332,
+    "XRP": 1791650477332,
+    "DOGE": 1791650477332,
+    "AVAX": 1791650477332,
+    "LINK": 1791650477332,
+    "SUI": 1791650477332,
+    "NEAR": 1791650477332,
+    "ARB": 1791650477332,
+    "TIA": 1791650477332,
+    "ZEC": 1791650477332,
+    "WIF": 1791650477332,
+    "PUMP": 1791650477332,
+    "VVV": 1791650477332
+  },
+  "stale": [],
+  "bar": {
+    "tick": 2881,
+    "time_ms": 1791650400000,
+    "next_tick_ms": 1791650522000
+  },
+  "bots": {
+    "bot-0001": {
+      "szi": 0,
+      "entry_px": null,
+      "mark_px": 2506.25,
+      "unrealized_pnl": 0,
+      "realized_pnl": -3.74,
+      "margin_used": 0,
+      "liquidation_px": null,
+      "notional_usd": 0,
+      "price_stale": false,
+      "as_of_ms": 1791650477332
+    },
+    "bot-0003": {
+      "szi": 0.005,
+      "entry_px": 82410,
+      "mark_px": 83022.5,
+      "unrealized_pnl": 3.0625,
+      "realized_pnl": -0.19,
+      "margin_used": 44.2675,
+      "liquidation_px": 74581.05,
+      "notional_usd": 415.1125,
+      "price_stale": false,
+      "as_of_ms": 1791650477332
+    },
+    "bot-0004": {
+      "szi": -3.5,
+      "entry_px": 111,
+      "mark_px": 110.205,
+      "unrealized_pnl": 2.7825,
+      "realized_pnl": -0.17,
+      "margin_used": 80.4825,
+      "liquidation_px": 132.09,
+      "notional_usd": 385.7175,
+      "price_stale": false,
+      "as_of_ms": 1791650477332
+    }
+  },
+  "account": {
+    "account_value": 10001.745,
+    "unrealized_pnl": 5.845,
+    "realized_pnl": -4.1,
+    "available_usd": 9601.745,
+    "deployed_usd": 400,
+    "open_notional_usd": 800.83
+  }
+}

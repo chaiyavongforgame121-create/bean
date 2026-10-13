@@ -1,0 +1,30 @@
+# deploy/Caddyfile — TLS, HSTS and HTTP/2 in front of the bean container (PLATFORM.md §10.2).
+#
+# Caddy (>= 2.5) ignores a client-supplied X-Forwarded-For unless the client is in its trusted_proxies, and sets it
+# to the real peer, so TRUST_PROXY=1 (the rightmost hop) is correct for Caddy directly on the internet.
+# With a CDN in front of Caddy (e.g. Cloudflare), add a global block so Caddy keeps the CDN's XFF:
+#   { servers { trusted_proxies static <the CDN's published ranges> } }
+# otherwise every player appears as a few CDN addresses and the per-IP limits lock everyone out
+# (admin_status.client_ip.buckets_1h shows it).
+#
+# Do not add `encode`: Node already gzips static files, and SSE must never be buffered.
+
+{$DOMAIN} {
+	reverse_proxy bean:8420 {
+		# SSE: flush every write immediately
+		flush_interval -1
+		header_up X-Forwarded-Proto {scheme}
+		# Never pass client-supplied single-IP headers through to the app
+		header_up -Fly-Client-IP
+		header_up -CF-Connecting-IP
+		header_up -X-Real-IP
+		header_up -True-Client-IP
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	request_body {
+		max_size 128KB
+	}
+}

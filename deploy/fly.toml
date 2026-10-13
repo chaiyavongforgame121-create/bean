@@ -1,0 +1,62 @@
+# deploy/fly.toml — Bean Garden on Fly.io (PLATFORM.md §10.1, §10.2). The Fly edge terminates TLS; no Caddy.
+#
+# From the repository root:
+#   fly apps create <your-app>                      # then set `app` below and PUBLIC_ORIGIN
+#   fly volumes create bean_data --size 10 --region <primary_region>
+#   fly secrets set BEAN_MASTER_KEY="$(node -e "console.log(require('crypto').randomBytes(32).toString('base64'))")" \
+#                   ADMIN_TOKEN="$(node -e "console.log(require('crypto').randomBytes(33).toString('base64url'))")"
+#   fly deploy --config deploy/fly.toml --dockerfile Dockerfile .
+#   fly ssh console -C "cat /data/admin-bootstrap.txt"          # the first-admin sign-up code
+#   fly ssh console -C "node /app/server/admin-cli.js status"
+#
+# Fly secrets arrive as env vars (the server deletes them from process.env after reading; the residual exposure to
+# whoever can reach the VM or the dashboard is accepted, §5.1). Fly's shared egress IPs may need a lower
+# TESTNET_BUDGET (risk K4).
+#
+# NEVER run 2+ machines: the engine, SQLite, nonces and SSE need exactly one process (§2.2, §10.1).
+
+app = "bean-garden"
+primary_region = "sin"
+kill_signal = "SIGTERM"
+kill_timeout = 30
+
+[build]
+  dockerfile = "../Dockerfile"
+
+[env]
+  PUBLIC_ORIGIN = "https://bean-garden.fly.dev"
+  # The Fly edge sets Fly-Client-IP; the Fly proxy connects from a private address inside TRUSTED_PROXY_CIDRS
+  # (fdaa::/16), so the header is honoured only from it. TRUST_PROXY is unused here.
+  CLIENT_IP_HEADER = "fly-client-ip"
+  LOG_FORMAT = "json"
+  SIGNUP_MODE = "closed"
+  TESTNET_ENABLED = "0"
+
+[http_service]
+  internal_port = 8420
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 2000
+    hard_limit = 2500
+
+  [[http_service.checks]]
+    grace_period = "90s"
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/readyz"
+    # /readyz accepts the loopback Host names (§4.4); the check's own Host would otherwise be refused with 421.
+    [http_service.checks.headers]
+      Host = "localhost:8420"
+
+[[mounts]]
+  source = "bean_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"

@@ -1,0 +1,20 @@
+# PLATFORM.md §10.2: the image holds server/, web/, package*.json and node_modules from `npm ci` only.
+# No test/ (so --testnet-double can never load the double in production), no data, no secrets.
+.git
+.gitignore
+node_modules
+data
+reference
+test
+.claude
+*.md
+!README.md
+.env*
+secrets/
+deploy/
+docker-compose.yml
+Dockerfile
+.dockerignore
+render.yaml
+BROOD-STUDY.md
+data*

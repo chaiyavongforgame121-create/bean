@@ -1,0 +1,140 @@
+{
+  "ok": true,
+  "version": "0.2.0",
+  "tick": 2881,
+  "bar_idx": 2880,
+  "beans": 3000,
+  "now_ms": 1791650477400,
+  "market_time_ms": 1791650400000,
+  "uptime_s": 75,
+  "feed": {
+    "source": "hyperliquid",
+    "coins": 16,
+    "ok": true,
+    "error": null,
+    "stale": 0,
+    "real": true,
+    "state": "live",
+    "stale_coins": [],
+    "fallback": null,
+    "real_available": null,
+    "mids_ms": 1791650477332,
+    "mids_age_ms": 68,
+    "last_bar_close_ms": 1791650460000,
+    "next_tick_ms": 1791650522000,
+    "lag_bars": 0,
+    "bar_sources": {
+      "candle": 16,
+      "mids": 0,
+      "flat": 0
+    },
+    "weight_60s": 386,
+    "last_gap": null,
+    "requests": {
+      "allMids": 16,
+      "metaAndAssetCtxs": 2,
+      "candleSnapshot": 32,
+      "errors": 0,
+      "rate_limited": 0,
+      "skipped": 0
+    }
+  },
+  "prices": "real",
+  "paper": true,
+  "feed_state": "live",
+  "daemon": {
+    "running": true,
+    "tick_ms": 60000,
+    "aligned": true,
+    "next_tick_ms": 1791650522000
+  },
+  "from_snapshot": false,
+  "last_tick_duration_ms": 4.21,
+  "last_tick_ms": 1791650462310,
+  "population": {
+    "beans": 3000,
+    "by_archetype": [
+      {
+        "archetype": "standard",
+        "count": 400,
+        "busted": 0,
+        "positioned": 253,
+        "traded": 385,
+        "best_return": 0.1466503987411123,
+        "mean_return": -0.005980288825679696
+      },
+      {
+        "archetype": "hyper_algo",
+        "count": 400,
+        "busted": 0,
+        "positioned": 296,
+        "traded": 395,
+        "best_return": 1.4536140118910565,
+        "mean_return": -0.05925417995570428
+      },
+      {
+        "archetype": "degen_algo",
+        "count": 400,
+        "busted": 3,
+        "positioned": 283,
+        "traded": 392,
+        "best_return": 7.121276108036168,
+        "mean_return": -0.1544791144112966
+      },
+      {
+        "archetype": "swarm",
+        "count": 300,
+        "busted": 0,
+        "positioned": 212,
+        "traded": 293,
+        "best_return": 0.05374435000972211,
+        "mean_return": -0.0043265199561759
+      },
+      {
+        "archetype": "swarm_5x",
+        "count": 300,
+        "busted": 0,
+        "positioned": 210,
+        "traded": 291,
+        "best_return": 0.25968097847166915,
+        "mean_return": -0.015444180538021783
+      },
+      {
+        "archetype": "swarm_10x",
+        "count": 300,
+        "busted": 0,
+        "positioned": 217,
+        "traded": 289,
+        "best_return": 0.8152071540857748,
+        "mean_return": -0.030114325080476578
+      },
+      {
+        "archetype": "swarm_25x",
+        "count": 300,
+        "busted": 0,
+        "positioned": 203,
+        "traded": 290,
+        "best_return": 2.7178767215261868,
+        "mean_return": -0.09505412111888249
+      },
+      {
+        "archetype": "swarm_50x",
+        "count": 300,
+        "busted": 0,
+        "positioned": 204,
+        "traded": 289,
+        "best_return": 2.4529028005073417,
+        "mean_return": -0.13024201726200602
+      },
+      {
+        "archetype": "swarm_100x",
+        "count": 300,
+        "busted": 1,
+        "positioned": 167,
+        "traded": 284,
+        "best_return": 13.662743598144305,
+        "mean_return": -0.2227598559731501
+      }
+    ]
+  }
+}

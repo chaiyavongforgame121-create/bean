@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Bean Garden: plant simulated trading beans, water them with play capital and watch them grow or wilt. Simulation only.">
+  <!-- Point the page at another backend with <meta name="brood-api" content="http://host:port"> (or ?api=…). -->
+  <title>Bean Garden</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%B1%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/garden.css">
+  <script type="module" src="js/garden.js"></script>
+</head>
+<body>
+  <a class="skip" href="#field" data-i18n="field.title">Your field</a>
+
+  <div class="sky" aria-hidden="true">
+    <div class="moon"></div>
+    <div class="rain"></div>
+  </div>
+
+  <header class="top wrap">
+    <div class="brand">
+      <h1><span aria-hidden="true">🌱</span> <span data-i18n="app.title">Bean Garden</span></h1>
+      <p class="subtitle" data-i18n="app.subtitle">plant a bean, water it with capital, watch it grow — or wilt — and harvest in time</p>
+      <p class="simnote" data-i18n="app.simNote">simulation only · no real money, no real orders</p>
+    </div>
+
+    <div class="controls">
+      <span id="weather" class="badge" role="status" data-i18n-attr="title:weather.label">…</span>
+      <span id="liveBadge" class="badge" data-state="off" data-i18n-attr="title:live.title">
+        <span class="live-dot" aria-hidden="true"></span><span id="liveText">…</span>
+      </span>
+      <div class="lang" role="group" aria-label="Language" data-i18n-attr="aria-label:lang.toggle">
+        <button type="button" data-lang="en" aria-pressed="true" lang="en">EN</button>
+        <button type="button" data-lang="th" aria-pressed="false" lang="th">TH</button>
+      </div>
+      <details class="tokbox" id="tokBox">
+        <summary><span aria-hidden="true">🔑</span> <span data-i18n="token.summary">token</span> · <span id="tokState">loopback only</span><span id="tokHost" class="tok-host" hidden></span></summary>
+        <form id="tokForm" class="tokform" autocomplete="off">
+          <label for="tokInput" data-i18n="token.label">Command token</label>
+          <input id="tokInput" type="password" autocomplete="off" spellcheck="false" data-i18n-attr="placeholder:token.placeholder">
+          <button type="submit" data-i18n="token.save">save</button>
+          <p class="hint" data-i18n="token.help">Commands need this token unless you open the garden on this computer (localhost).</p>
+          <p class="hint" id="tokApi" hidden></p>
+          <p class="hint" id="tokMsg" role="status"></p>
+        </form>
+      </details>
+    </div>
+
+    <ul class="signs" id="signs">
+      <li class="sign" id="signMode"><span class="k" data-i18n="sign.mode">mode</span><b class="v">—</b></li>
+      <li class="sign" id="signBarn"><span class="k" data-i18n="sign.barn">barn</span><b class="v">—</b></li>
+      <li class="sign" id="signWater"><span class="k" data-i18n="sign.waterOut">water out</span><b class="v">—</b></li>
+      <li class="sign" id="signHarvested"><span class="k" data-i18n="sign.harvested">harvested</span><b class="v">—</b></li>
+      <li class="sign" id="signGrowing"><span class="k" data-i18n="sign.growing">growing</span><b class="v">—</b></li>
+      <li class="sign" id="signPlants"><span class="k" data-i18n="sign.plants">plants</span><b class="v">—</b></li>
+    </ul>
+  </header>
+
+  <main class="wrap">
+    <section class="shelf" aria-labelledby="shelfTitle">
+      <div class="section-head">
+        <h2 id="shelfTitle" data-i18n="shelf.title">Seed shelf</h2>
+        <p class="sub" data-i18n="shelf.sub">the five best beans, one per coin — pick a packet, then an empty plot</p>
+        <p class="note" id="venueNote"></p>
+      </div>
+      <div class="filters">
+        <label><span data-i18n="shelf.variety">variety</span>
+          <select id="arch"><option value="" data-i18n="shelf.anyVariety">any variety</option></select>
+        </label>
+        <label><span data-i18n="shelf.sort">sort</span>
+          <select id="by">
+            <option value="-total_return" data-i18n="shelf.byReturn">by total return</option>
+            <option value="-ret_7d" data-i18n="shelf.by7d">by 7-day</option>
+            <option value="-sharpe" data-i18n="shelf.bySharpe">by Sharpe</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="posOnly" checked> <span data-i18n="shelf.sprouting">sprouting now</span></label>
+        <button type="button" id="restock" data-i18n="shelf.restock" data-i18n-attr="aria-label:shelf.restockLabel;title:shelf.restockLabel">↻ restock</button>
+      </div>
+      <ul class="packets" id="packets" aria-labelledby="shelfTitle">
+        <li class="shelf-msg" data-i18n="shelf.stocking">stocking the shelf…</li>
+      </ul>
+      <div class="plank" aria-hidden="true"></div>
+    </section>
+
+    <section class="field" id="field" aria-labelledby="fieldTitle" tabindex="-1">
+      <div class="section-head">
+        <h2 id="fieldTitle" data-i18n="field.title">Your field</h2>
+        <p class="sub" data-i18n="field.sub">each plot is a simulated bot mirroring its bean; growth = profit on your stake</p>
+        <div class="field-tools">
+          <button type="button" id="timelapse" data-i18n="field.timelapse" data-i18n-attr="aria-label:field.timelapseLabel;title:field.timelapseLabel">⏩ +1h</button>
+          <button type="button" id="burn" class="danger" data-i18n="field.burn" data-i18n-attr="title:field.burnTitle">🔥 burn the field</button>
+        </div>
+      </div>
+      <p id="netMsg" class="msg err" role="alert"></p>
+      <p id="fieldMsg" class="msg" role="status" aria-live="polite"></p>
+      <div class="plots" id="plots"></div>
+      <p id="liveError" class="msg err"></p>
+      <p id="harvests" class="harvests" hidden></p>
+    </section>
+
+    <section class="diary-wrap" aria-labelledby="diaryTitle">
+      <div class="section-head"><h2 id="diaryTitle" data-i18n="diary.title">Garden diary</h2></div>
+      <ol id="diary" class="diary" aria-labelledby="diaryTitle"></ol>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <span data-i18n="app.simNote">simulation only · no real money, no real orders</span> · <a href="/docs" data-i18n="app.apiDocs">API docs</a> · <a href="/" lang="en">🏝️ 3D garden</a>
+  </footer>
+
+  <div id="announce" class="sr-only" aria-live="polite"></div>
+
+  <dialog id="plantDlg" aria-labelledby="mTitle">
+    <form id="plantForm" novalidate>
+      <h3 id="mTitle">Plant</h3>
+      <div class="row"><span data-i18n="modal.variety">variety</span><b id="mVar"></b></div>
+      <div class="row"><span data-i18n="modal.paper">paper return</span><b id="mRet"></b></div>
+      <div class="row"><label for="mRange" data-i18n="modal.water">water (your stake)</label><b id="mAmt">$100</b></div>
+      <input type="range" id="mRange" min="20" max="1000" step="10" value="100" data-i18n-attr="aria-label:modal.waterLabel">
+      <p class="note" id="mNote"></p>
+      <p class="note" id="mLev"></p>
+      <p class="note" id="mRoom" aria-live="polite"></p>
+      <div class="actions">
+        <button type="submit" class="go" id="mGo" data-i18n="modal.plant">🌱 plant</button>
+        <button type="button" id="mCancel" data-i18n="modal.cancel">cancel</button>
+      </div>
+      <p class="msg" id="mMsg" role="alert"></p>
+    </form>
+  </dialog>
+
+  <dialog id="askDlg" aria-labelledby="askTitle" aria-describedby="askBody">
+    <h3 id="askTitle"></h3>
+    <p id="askBody"></p>
+    <div class="actions">
+      <button type="button" id="askYes" class="go">yes</button>
+      <button type="button" id="askNo">cancel</button>
+    </div>
+  </dialog>
+</body>
+</html>
