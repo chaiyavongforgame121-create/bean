@@ -46,9 +46,10 @@ services:
         value: hyperliquid
       - key: NODE_ENV
         value: production
-      # Open sign-ups for friends: change it HERE to open (a dashboard-only change is undone by the next Blueprint sync).
+      # Sign-ups are open to anyone (rate-limited per IP and per hour). Close them again HERE with "closed"
+      # (a dashboard-only change is undone by the next Blueprint sync).
       - key: SIGNUP_MODE
-        value: closed
+        value: open
       - key: TESTNET_ENABLED
         value: "0"
       # Expected: Render's proxy connects from a private address (inside the default TRUSTED_PROXY_CIDRS) and appends
